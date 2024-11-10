@@ -56,6 +56,7 @@ final class VideoCacheManager: Sendable {
         } else {
             // Create and write if the file doesn't exist
             try? data.write(to: fileURL, options: .atomic)
+            print("as you append data think about when the user seeks to a position in the video, will you still append data to end of file?")
         }
     }
     
