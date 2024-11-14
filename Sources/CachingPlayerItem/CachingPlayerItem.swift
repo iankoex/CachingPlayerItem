@@ -13,6 +13,7 @@ public final class CachingPlayerItem: AVPlayerItem, Sendable {
     private var urlSession: URLSession?
     private let url: URL
     private var loadingRequests: [AVAssetResourceLoadingRequest] = []
+    private var currentDataTask: URLSessionDataTask?
     
     // MARK: Public init
     nonisolated public init(url: URL, identifier: String = "") {
@@ -23,21 +24,22 @@ public final class CachingPlayerItem: AVPlayerItem, Sendable {
         self.cacheManager = VideoCacheManager(for: url, identifier: identifier)
         
         super.init(asset: asset, automaticallyLoadedAssetKeys: nil)
-        asset.resourceLoader.setDelegate(self, queue: .global(qos: .userInitiated))
+        asset.resourceLoader.setDelegate(self, queue: .global(qos: .userInteractive))
     }
     
     deinit {
         invalidate()
     }
     
-    func invalidate() {
+    public func invalidate() {
         self.loadingRequests.forEach { $0.finishLoading() }
         self.invalidateURLSession()
     }
     
-    func invalidateURLSession() {
+    private func invalidateURLSession() {
+        currentDataTask?.cancel()
+        currentDataTask = nil
         self.urlSession?.invalidateAndCancel()
-        self.urlSession = nil
     }
     
     nonisolated static func replaceScheme(of url: URL, with scheme: String) -> URL {
@@ -81,7 +83,6 @@ extension CachingPlayerItem {
         let config = URLSessionConfiguration.default
         config.requestCachePolicy = .returnCacheDataElseLoad
         let operationQueue = OperationQueue()
-        operationQueue.maxConcurrentOperationCount = 1
         urlSession = URLSession(configuration: config, delegate: self, delegateQueue: operationQueue)
         createDataTaskAndLoad()
     }
@@ -94,8 +95,8 @@ extension CachingPlayerItem {
         
         // Set range header to resume download from where cache ends
         request.setValue("bytes=\(cachedBytes)-", forHTTPHeaderField: "Range")
-        let task = urlSession?.dataTask(with: request)
-        task?.resume()
+        currentDataTask = urlSession?.dataTask(with: request)
+        currentDataTask?.resume()
     }
     
     nonisolated private func handleRequestFromCacheIfPossible(_ loadingRequest: AVAssetResourceLoadingRequest) -> Bool {
@@ -197,7 +198,9 @@ extension CachingPlayerItem {
 
 extension CachingPlayerItem: URLSessionTaskDelegate {
     nonisolated public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        self.invalidateURLSession()
+        if let error {
+            self.invalidateURLSession()
+        } // else downloaded all the video successfully
     }
 }
 
