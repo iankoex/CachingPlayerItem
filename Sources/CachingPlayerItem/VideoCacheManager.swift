@@ -9,20 +9,19 @@
 import Foundation
 
 /// Manages the local caching of video data for smoother playback and offline access.
-final class VideoCacheManager: Sendable {
-    private let cacheDirectory: URL
+public final class VideoCacheManager: Sendable {
+    private static let cacheDirectory: URL = URL.cachesDirectory.appending(path: "VideoCache", directoryHint: .isDirectory)
     let url: URL
     let identifier: String
     
     init(for url: URL, identifier: String = "") {
         self.url = url
         self.identifier = identifier + "_"
-        self.cacheDirectory = URL.cachesDirectory.appending(path: "VideoCache", directoryHint: .isDirectory)
         
         let fileManager = FileManager.default
         // Create the cache directory if it doesn't exist
-        if !fileManager.fileExists(atPath: cacheDirectory.path) {
-            try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true, attributes: nil)
+        if !fileManager.fileExists(atPath: Self.cacheDirectory.path) {
+            try? fileManager.createDirectory(at: Self.cacheDirectory, withIntermediateDirectories: true, attributes: nil)
         }
     }
     
@@ -35,12 +34,12 @@ final class VideoCacheManager: Sendable {
     
     /// Returns the URL for a cached file based on the original URL.
     var cacheFileURL: URL {
-        cacheDirectory.appending(path: identifier + url.lastPathComponent)
+        Self.cacheDirectory.appending(path: identifier + url.lastPathComponent)
     }
     
     private var codableURLResponseCachePath: String {
         // for some reason `cacheFileURL.appending(path: ".json").path` doesn't work
-        cacheDirectory.appending(path: identifier + url.lastPathComponent + ".json").path
+        Self.cacheDirectory.appending(path: identifier + url.lastPathComponent + ".json").path
     }
     
     /// Stores or appends data for the given URL in the cache directory.
@@ -141,5 +140,35 @@ fileprivate struct CodableURLResponse: Codable {
             textEncodingName: urlResponse.textEncodingName,
             url: urlResponse.url
         )
+    }
+}
+
+public extension VideoCacheManager {
+    
+    static func totalCacheSize() -> Int {
+        var totalCacheSize = 0
+        let resourceKeys: [URLResourceKey] = [.creationDateKey, .isDirectoryKey]
+        
+        guard let eor = FileManager.default.enumerator(
+            at: Self.cacheDirectory,
+            includingPropertiesForKeys: resourceKeys,
+            options: [.skipsHiddenFiles]
+        ) else {
+            return 0
+        }
+        
+        for case let fileURL as URL in eor {
+            if let resourceValues = try? fileURL.resourceValues(forKeys: Set(resourceKeys)),
+               let isDirProperty = resourceValues.isDirectory,
+               isDirProperty == false,
+               let fileSize = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                totalCacheSize += fileSize
+            }
+        }
+        return totalCacheSize
+    }
+    
+    static func deleteCachedData() throws {
+        try FileManager.default.removeItem(at: Self.cacheDirectory)
     }
 }
