@@ -9,20 +9,30 @@ import Foundation
 
 /// Manages the local caching of video data for smoother playback and offline access.
 public final class VideoCacheManager: Sendable {
-    private static let cacheDirectory: URL = URL.cachesDirectory.appending(
+    private static var cacheDirectory: URL = URL.cachesDirectory.appending(
         path: "VideoCache",
         directoryHint: .isDirectory
     )
     let fileManager = FileManager.default
     let url: URL
 
+    /// Sets a custom cache directory for all VideoCacheManager instances.
+    /// - Parameter directory: The URL of the directory to use for caching.
+    public static func setCacheDirectory(_ directory: URL) {
+        Self.cacheDirectory = directory
+    }
+
     init(for url: URL) {
         self.url = url
 
         // Create the cache directory if it doesn't exist
         if !fileManager.fileExists(atPath: Self.cacheDirectory.path) {
-            try? fileManager.createDirectory(
-                at: Self.cacheDirectory, withIntermediateDirectories: true, attributes: nil)
+            do {
+                try fileManager.createDirectory(
+                    at: Self.cacheDirectory, withIntermediateDirectories: true, attributes: nil)
+            } catch {
+                // Directory creation failed, cache may not work
+            }
         }
     }
 
@@ -47,17 +57,21 @@ public final class VideoCacheManager: Sendable {
         let fileURL = cacheFileURL
         if FileManager.default.fileExists(atPath: fileURL.path) {
             // Append data if the file already exists
-            if let fileHandle = try? FileHandle(forWritingTo: fileURL) {
+            do {
+                let fileHandle = try FileHandle(forWritingTo: fileURL)
                 fileHandle.seekToEndOfFile()
                 fileHandle.write(data)
                 fileHandle.closeFile()
+            } catch {
+                // Failed to append data to existing file
             }
         } else {
             // Create and write if the file doesn't exist
-            try? data.write(to: fileURL, options: .atomic)
-            print(
-                "as you append data think about when the user seeks to a position in the video, will you still append data to end of file?"
-            )
+            do {
+                try data.write(to: fileURL, options: .atomic)
+            } catch {
+                // Failed to write initial data to file
+            }
         }
         VideoCacheManager.enforceCacheLimit()
     }
@@ -65,26 +79,33 @@ public final class VideoCacheManager: Sendable {
     /// Retrieves cached data for the given URL and byte range.
     func cachedData(in range: NSRange) -> Data? {
         let fileURL = cacheFileURL
-        guard let fileData = try? Data(contentsOf: fileURL) else { return nil }
+        let fileSize = fileSize()
+        print("requesting for:", range.location.formatted(.number), "file size:", fileSize.formatted(.number))
+        guard range.location < fileSize else { return nil }
+
+        guard let fileHandle = try? FileHandle(forReadingFrom: fileURL) else {
+            // Failed to open file for reading
+            return nil
+        }
+        defer { fileHandle.closeFile() }
+
         touchFile()
 
-        // Check if the requested range is valid
-        guard range.location < fileData.count else { return nil }
-
         // Adjust range length if it goes beyond data bounds
-        let adjustedLength = min(range.length, fileData.count - range.location)
-        return fileData.subdata(in: range.location..<(range.location + adjustedLength))
+        let adjustedLength = min(range.length, fileSize - range.location)
+        fileHandle.seek(toFileOffset: UInt64(range.location))
+        return fileHandle.readData(ofLength: adjustedLength)
     }
 
     func getCachedResponse() -> URLResponse? {
         var value: CodableURLResponse?
-        print(codableURLResponseCachePath)
+
         do {
-            if let data = FileManager.default.contents(atPath: codableURLResponseCachePath) {
+            if let data = fileManager.contents(atPath: codableURLResponseCachePath) {
                 value = try JSONDecoder().decode(CodableURLResponse.self, from: data)
             }
         } catch {
-            print("Cache: CodableURLResponse from disk could not be decoded")
+            // Decoding failed, return nil
         }
         return value?.urlResponse
     }
@@ -92,14 +113,18 @@ public final class VideoCacheManager: Sendable {
     func cacheURLResponse(_ response: URLResponse) {
         let contentLength = getMaxContentRange(from: response)
         let codableResponse = CodableURLResponse.from(response, with: contentLength)
-        if FileManager.default.fileExists(atPath: self.codableURLResponseCachePath) == false {
-            try? FileManager.default.removeItem(atPath: codableURLResponseCachePath)
+        if fileManager.fileExists(atPath: self.codableURLResponseCachePath) {
+            do {
+                try fileManager.removeItem(atPath: codableURLResponseCachePath)
+            } catch {
+                // Failed to remove old response cache
+            }
         }
         do {
             let data = try JSONEncoder().encode(codableResponse)
-            FileManager.default.createFile(atPath: codableURLResponseCachePath, contents: data, attributes: nil)
+            fileManager.createFile(atPath: codableURLResponseCachePath, contents: data, attributes: nil)
         } catch {
-            print("Cache: Error while encoding CodableURLResponse")
+            // Encoding failed, file not created
         }
     }
 
@@ -108,6 +133,15 @@ public final class VideoCacheManager: Sendable {
             return false
         }
         return response.expectedContentLength == fileSize()
+    }
+
+    /// Invalidates the cache for this URL by removing the cached file and response metadata.
+    /// - Throws: An error if the file removal fails.
+    public func invalidateCache() throws {
+        try fileManager.removeItem(at: cacheFileURL)
+        if fileManager.fileExists(atPath: codableURLResponseCachePath) {
+            try fileManager.removeItem(atPath: codableURLResponseCachePath)
+        }
     }
 
     private func getMaxContentRange(from urlResponse: URLResponse) -> Int? {
@@ -150,6 +184,7 @@ private struct CodableURLResponse: Codable {
 
 extension VideoCacheManager {
 
+    /// Returns the total size in bytes of all cached files.
     public static func totalCacheSize() -> Int {
         var totalCacheSize = 0
         let resourceKeys: [URLResourceKey] = [.creationDateKey, .isDirectoryKey]
@@ -176,6 +211,8 @@ extension VideoCacheManager {
         return totalCacheSize
     }
 
+    /// Deletes all cached data from the cache directory.
+    /// - Throws: An error if the directory removal fails.
     public static func deleteCachedData() throws {
         try FileManager.default.removeItem(at: Self.cacheDirectory)
     }
@@ -211,9 +248,13 @@ extension VideoCacheManager {
 
         var freedSize = 0
         for (url, _, size) in cacheFiles {
-            try? FileManager.default.removeItem(at: url)
+            do {
+                try FileManager.default.removeItem(at: url)
+            } catch {
+                // Failed to remove cached file
+            }
             freedSize += size
-            if freedSize + (currentSize - freedSize) <= maxCacheSize { break }
+            if currentSize - freedSize <= maxCacheSize { break }
         }
     }
 }
