@@ -8,7 +8,7 @@
 import AVKit
 import Foundation
 
-// MARK: URLSessionTaskDelegate
+// MARK: - URLSessionTaskDelegate
 
 extension CachingPlayerItem: URLSessionTaskDelegate {
     nonisolated public func urlSession(
@@ -17,25 +17,17 @@ extension CachingPlayerItem: URLSessionTaskDelegate {
         didCompleteWithError error: Error?
     ) {
         if let error {
-            self.invalidateURLSession()
-        }  // else downloaded all the video successfully
+            // Jump into the actor to safely handle completion.
+            Task {
+                await self.taskDidComplete(with: error)
+            }
+        }
     }
 }
 
-// MARK: URLSessionDataDelegate
+// MARK: - URLSessionDataDelegate
 
 extension CachingPlayerItem: URLSessionDataDelegate {
-
-    nonisolated public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        // Dont append data if the video is already fully cached
-        // This fixes a bug where a byte was added to the end of the file even though the video was fully cached
-        // thereby corrupting the video file and making it unplayable
-        if cacheManager.isFullyCached == false {
-            cacheManager.appendData(data)
-        }
-
-        processRequests()
-    }
 
     nonisolated public func urlSession(
         _ session: URLSession,
@@ -43,8 +35,40 @@ extension CachingPlayerItem: URLSessionDataDelegate {
         didReceive response: URLResponse,
         completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
     ) {
-        cacheManager.cacheURLResponse(response)
-        self.processRequests()
+        // Jump into the actor to process the response.
+        Task {
+            await self.handle(response: response)
+        }
         completionHandler(.allow)
+    }
+
+    nonisolated public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        // Jump into the actor to process the incoming data.
+        Task {
+            await self.handle(data: data)
+        }
+    }
+}
+
+// MARK: - Actor-Safe URLSession Logic
+
+extension CachingPlayerItem {
+
+    func taskDidComplete(with error: Error?) {
+        // Handle error and cleanup
+        self.invalidateURLSession()
+        // You might want to fail any pending requests here.
+    }
+
+    func handle(response: URLResponse) {
+        cacheManager.cacheURLResponse(response)
+        processRequests()
+    }
+
+    func handle(data: Data) {
+        if !cacheManager.isFullyCached {
+            cacheManager.appendData(data)
+        }
+        processRequests()
     }
 }

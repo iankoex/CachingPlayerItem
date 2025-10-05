@@ -93,8 +93,13 @@ public final class VideoCacheManager: Sendable {
 
         // Adjust range length if it goes beyond data bounds
         let adjustedLength = min(range.length, fileSize - range.location)
-        fileHandle.seek(toFileOffset: UInt64(range.location))
-        return fileHandle.readData(ofLength: adjustedLength)
+        do {
+            try fileHandle.seek(toOffset: UInt64(range.location))
+            return try fileHandle.read(upToCount: adjustedLength)
+        } catch {
+            print(error)
+        }
+        return nil
     }
 
     func getCachedResponse() -> URLResponse? {
