@@ -10,16 +10,15 @@ import Foundation
 
 // MARK: AVAssetResourceLoaderDelegate
 
-extension CachingPlayerItem: AVAssetResourceLoaderDelegate {
+extension CachingPlayerItemDelegate: AVAssetResourceLoaderDelegate {
 
     /// Intercepts loading requests to serve cached data or download data as needed.
     nonisolated public func resourceLoader(
         _ resourceLoader: AVAssetResourceLoader,
         shouldWaitForLoadingOfRequestedResource loadingRequest: AVAssetResourceLoadingRequest
     ) -> Bool {
-        Task {
-            await self.addRequest(loadingRequest)
-        }
+        print("shouldWaitForLoadingOfRequestedResource: AVAssetResourceLoadingRequest")
+        //        await self.addRequest(loadingRequest)
         // Always return true to indicate we will handle this request asynchronously.
         return true
     }
@@ -28,16 +27,15 @@ extension CachingPlayerItem: AVAssetResourceLoaderDelegate {
         _ resourceLoader: AVAssetResourceLoader,
         didCancel loadingRequest: AVAssetResourceLoadingRequest
     ) {
-        Task {
-            await self.removeRequest(loadingRequest)
-        }
+        print("didCancel loadingRequest: AVAssetResourceLoadingRequest")
+//        self.removeRequest(loadingRequest)
     }
 
 }
 
 // MARK: - Actor-Safe Methods for Handling Requests
 
-extension CachingPlayerItem {
+extension CachingPlayerItemDelegate {
 
     private func addRequest(_ request: AVAssetResourceLoadingRequest) {
         // Start the download session if it hasn't started yet.
@@ -57,9 +55,9 @@ extension CachingPlayerItem {
 
 // MARK: AVAssetResourceLoaderDelegate Methods
 
-extension CachingPlayerItem {
+extension CachingPlayerItemDelegate {
 
-    nonisolated private func createURLSessionThenLoad() {
+    private func createURLSessionThenLoad() {
         guard self.urlSession == nil else { return }
         let config = URLSessionConfiguration.default
         config.requestCachePolicy = .returnCacheDataElseLoad
@@ -68,7 +66,7 @@ extension CachingPlayerItem {
         createDataTaskAndLoad()
     }
 
-    nonisolated private func createDataTaskAndLoad() {
+    private func createDataTaskAndLoad() {
         var request = URLRequest(url: url)
         // This will cheat the loader to think it is loading some bytes and therefore
         // call resourceLoader with dataRequest which will then be processed from the cache
@@ -95,7 +93,7 @@ extension CachingPlayerItem {
 
     /// Returns true if the request is fully handled (should be removed from queue and finished).
     /// False keeps it queued for retry (e.g., after new data arrives).
-    nonisolated internal func handleLoadingRequest(_ request: AVAssetResourceLoadingRequest) -> Bool {
+    internal func handleLoadingRequest(_ request: AVAssetResourceLoadingRequest) -> Bool {
         if let contentRequest = request.contentInformationRequest {
             return handleContentInformationRequest(request)
         } else if let dataRequest = request.dataRequest {
@@ -106,7 +104,7 @@ extension CachingPlayerItem {
 
     /// Handles content information request. Returns true only if fully handled (with response available).
     /// Queues if no response yet (will retry after didReceive response).
-    nonisolated internal func handleContentInformationRequest(_ request: AVAssetResourceLoadingRequest) -> Bool {
+    internal func handleContentInformationRequest(_ request: AVAssetResourceLoadingRequest) -> Bool {
         print("handling ContentInformationRequest")
         guard let response = cacheManager.getCachedResponse() else {
             print("No cached response yet for ContentInformationRequest - queuing for retry")
@@ -121,7 +119,7 @@ extension CachingPlayerItem {
     }
 
     /// Handles data request incrementally. Returns true only if the full range is now fulfilled.
-    nonisolated private func handleDataRequest(_ dataRequest: AVAssetResourceLoadingDataRequest) -> Bool {
+    private func handleDataRequest(_ dataRequest: AVAssetResourceLoadingDataRequest) -> Bool {
         let cachedBytes = cacheManager.fileSize()
         let requestRequestedOffset = Int(dataRequest.requestedOffset)
         let requestRequestedLength = dataRequest.requestedLength

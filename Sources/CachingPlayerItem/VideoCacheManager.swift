@@ -34,6 +34,8 @@ public final class VideoCacheManager: Sendable {
                 // Directory creation failed, cache may not work
             }
         }
+
+        print(cacheFileURL)
     }
 
     func fileSize() -> Int {

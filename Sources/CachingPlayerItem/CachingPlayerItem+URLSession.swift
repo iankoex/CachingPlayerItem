@@ -10,12 +10,12 @@ import Foundation
 
 // MARK: - URLSessionTaskDelegate
 
-extension CachingPlayerItem: URLSessionTaskDelegate {
-    nonisolated public func urlSession(
+extension CachingPlayerItemDelegate: URLSessionTaskDelegate {
+    public func urlSession(
         _ session: URLSession,
         task: URLSessionTask,
         didCompleteWithError error: Error?
-    ) {
+    ) async {
         if let error {
             // Jump into the actor to safely handle completion.
             Task {
@@ -27,32 +27,28 @@ extension CachingPlayerItem: URLSessionTaskDelegate {
 
 // MARK: - URLSessionDataDelegate
 
-extension CachingPlayerItem: URLSessionDataDelegate {
+extension CachingPlayerItemDelegate: URLSessionDataDelegate {
 
-    nonisolated public func urlSession(
+    public func urlSession(
         _ session: URLSession,
         dataTask: URLSessionDataTask,
         didReceive response: URLResponse,
         completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
-    ) {
+    ) async {
         // Jump into the actor to process the response.
-        Task {
-            await self.handle(response: response)
-        }
+        await self.handle(response: response)
         completionHandler(.allow)
     }
 
-    nonisolated public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+    nonisolated public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) async {
         // Jump into the actor to process the incoming data.
-        Task {
-            await self.handle(data: data)
-        }
+        await self.handle(data: data)
     }
 }
 
 // MARK: - Actor-Safe URLSession Logic
 
-extension CachingPlayerItem {
+extension CachingPlayerItemDelegate {
 
     func taskDidComplete(with error: Error?) {
         // Handle error and cleanup

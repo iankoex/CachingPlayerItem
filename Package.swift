@@ -4,7 +4,6 @@
 import PackageDescription
 
 let featureFlags: [SwiftSetting] = [
-    .enableExperimentalFeature("StrictConcurrency=complete"),
     .enableUpcomingFeature("StrictConcurrency=complete"),
 ]
 
