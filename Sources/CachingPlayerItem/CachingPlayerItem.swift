@@ -10,16 +10,16 @@ import Foundation
 
 public final class CachingPlayerItem: AVPlayerItem, Sendable {
     // we need the delegate to outlive the init
-    let delegate: CachingPlayerItemDelegate
+    let resourceLoader: ResourceLoader
 
     /// Initializes a CachingPlayerItem that caches video data from the given URL.
     /// - Parameter url: The URL of the video to play and cache.
     public init(url: URL) {
         let urlWithCustomScheme = Self.replaceScheme(of: url, with: "customcache")
         let asset = AVURLAsset(url: urlWithCustomScheme)
-        self.delegate = CachingPlayerItemDelegate(url: url)
+        self.resourceLoader = ResourceLoader(url: url)
         super.init(asset: asset, automaticallyLoadedAssetKeys: nil)
-        asset.resourceLoader.setDelegate(self.delegate, queue: .global(qos: .userInteractive))
+        asset.resourceLoader.setDelegate(self.resourceLoader, queue: .global(qos: .userInteractive))
     }
 
     nonisolated static func replaceScheme(of url: URL, with scheme: String) -> URL {

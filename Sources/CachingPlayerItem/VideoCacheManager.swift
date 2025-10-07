@@ -82,7 +82,7 @@ public final class VideoCacheManager: Sendable {
     func cachedData(in range: NSRange) -> Data? {
         let fileURL = cacheFileURL
         let fileSize = fileSize()
-        print("requesting for:", range.location.formatted(.number), "file size:", fileSize.formatted(.number))
+        print("cache requesting for:", range.location.formatted(.number), "file size:", fileSize.formatted(.number))
         guard range.location < fileSize else { return nil }
 
         guard let fileHandle = try? FileHandle(forReadingFrom: fileURL) else {
