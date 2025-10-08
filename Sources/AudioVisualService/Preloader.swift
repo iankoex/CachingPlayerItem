@@ -82,7 +82,7 @@ public actor Preloader: Sendable {
         if let (data, response) = try? await createURLSession().data(for: request) {
             guard !Task.isCancelled else { return }
             cacheManager.cacheURLResponse(response)
-            cacheManager.appendData(data)
+            cacheManager.appendData(data, offset: offset)
         }
         self.isPreloadingStore[url] = false
     }

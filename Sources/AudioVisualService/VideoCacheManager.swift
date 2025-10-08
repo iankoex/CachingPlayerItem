@@ -9,6 +9,8 @@ import Foundation
 
 /// Manages the local caching of video data for smoother playback and offline access.
 public final class VideoCacheManager: Sendable {
+    let maxCacheSize: Int64 = 10 * 1024 * 1024
+
     private static var cacheDirectory: URL = URL.cachesDirectory.appending(
         path: "VideoCache",
         directoryHint: .isDirectory
@@ -55,27 +57,23 @@ public final class VideoCacheManager: Sendable {
     }
 
     /// Stores or appends data for the given URL in the cache directory.
-    func appendData(_ data: Data) {
-        let fileURL = cacheFileURL
-        if FileManager.default.fileExists(atPath: fileURL.path) {
-            // Append data if the file already exists
-            do {
-                let fileHandle = try FileHandle(forWritingTo: fileURL)
-                fileHandle.seekToEndOfFile()
-                fileHandle.write(data)
-                fileHandle.closeFile()
-            } catch {
-                // Failed to append data to existing file
-            }
-        } else {
-            // Create and write if the file doesn't exist
-            do {
-                try data.write(to: fileURL, options: .atomic)
-            } catch {
-                // Failed to write initial data to file
-            }
+    func appendData(_ data: Data, offset: Int) {
+        guard offset <= maxCacheSize else {
+            return
         }
-        VideoCacheManager.enforceCacheLimit()
+        let fileURL = cacheFileURL
+        if !FileManager.default.fileExists(atPath: fileURL.path) {
+            print("creating file")
+            fileManager.createFile(atPath: fileURL.path, contents: nil)
+        }
+        do {
+            let fileHandle = try FileHandle(forWritingTo: fileURL)
+            try fileHandle.seek(toOffset: UInt64(offset))
+            fileHandle.write(data)
+            fileHandle.closeFile()
+        } catch {
+            print(error)
+        }
     }
 
     /// Retrieves cached data for the given URL and byte range.
@@ -86,12 +84,10 @@ public final class VideoCacheManager: Sendable {
         guard range.location < fileSize else { return nil }
 
         guard let fileHandle = try? FileHandle(forReadingFrom: fileURL) else {
-            // Failed to open file for reading
+            print("Failed to open file for reading")
             return nil
         }
         defer { fileHandle.closeFile() }
-
-        touchFile()
 
         // Adjust range length if it goes beyond data bounds
         let adjustedLength = min(range.length, fileSize - range.location)
