@@ -36,21 +36,21 @@ preloader.cancelPreloading(for: url)
 
 ```swift
 // Set custom cache directory
-VideoCacheManager.setCacheDirectory(URL(fileURLWithPath: "/custom/cache/path"))
+CacheManager.setCacheDirectory(URL(fileURLWithPath: "/custom/cache/path"))
 
 // Invalidate cache for a specific video
-let cacheManager = VideoCacheManager(for: url)
+let cacheManager = CacheManager(for: url)
 try cacheManager.invalidateCache()
 
 // Clear all cached data
-try VideoCacheManager.deleteCachedData()
+try CacheManager.deleteCachedData()
 ```
 
 ## API Reference
 
 - `CachingPlayerItem(url: URL)`: Creates a player item that caches video data.
 - `Preloader`: Actor for preloading video segments.
-- `VideoCacheManager`: Manages cache files and directories.
+- `CacheManager`: Manages cache files and directories.
 
 ### Disclaimer
 

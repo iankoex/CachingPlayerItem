@@ -16,7 +16,7 @@ extension ResourceLoader {
         _ loadingRequest: AVAssetResourceLoadingRequest,
         dataRequest: AVAssetResourceLoadingDataRequest
     ) -> Bool {
-        let cachedFileSize = self.cacheManager.fileSize()
+        let cachedFileSize = self.cacheManager.cacheFileSize
         let requestedOffset = Int(dataRequest.requestedOffset)
 
         if cachedFileSize > requestedOffset {
@@ -49,7 +49,7 @@ extension ResourceLoader {
             dataRequest.respond(with: data)
             loadingRequest.finishLoading()
             self.cacheManager.appendData(data, offset: requestedOffset)
-            print("cache size of ", self.cacheManager.fileSize().formatted(.number))
+            print("cache size of ", self.cacheManager.cacheFileSize.formatted(.number))
         }
         task.resume()
         self.pendingRequests[loadingRequest] = task

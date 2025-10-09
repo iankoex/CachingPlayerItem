@@ -9,7 +9,7 @@ import AVFoundation
 import Foundation
 
 actor ResourceLoader: NSObject, Sendable {
-    nonisolated let cacheManager: VideoCacheManager
+    nonisolated let cacheManager: CacheManager
     let urlSession: URLSession
     nonisolated let url: URL
     var loadingRequests: [AVAssetResourceLoadingRequest] = []
@@ -17,7 +17,7 @@ actor ResourceLoader: NSObject, Sendable {
 
     init(url: URL) {
         self.url = url
-        self.cacheManager = VideoCacheManager(for: url)
+        self.cacheManager = CacheManager(for: url)
 
         let config = URLSessionConfiguration.default
         config.requestCachePolicy = .returnCacheDataElseLoad

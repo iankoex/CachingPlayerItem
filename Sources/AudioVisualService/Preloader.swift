@@ -37,14 +37,14 @@ public actor Preloader: Sendable {
         preloadingTasks[url]?.cancel()
         preloadingTasks[url] = nil
 
-        let cacheManager = VideoCacheManager(for: url)
+        let cacheManager = CacheManager(for: url)
 
         // If entire video is cached, skip preload
         if cacheManager.isFullyCached {
             return
         }
 
-        let cachedBytes = cacheManager.fileSize()
+        let cachedBytes = cacheManager.cacheFileSize
         if cachedBytes > preloadSize {
             return
         }
@@ -74,7 +74,7 @@ public actor Preloader: Sendable {
         url: URL,
         from offset: Int,
         upTo bytes: Int,
-        using cacheManager: VideoCacheManager
+        using cacheManager: CacheManager
     ) async {
         guard !Task.isCancelled else { return }
         var request = URLRequest(url: url)
