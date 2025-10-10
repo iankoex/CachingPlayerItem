@@ -13,6 +13,7 @@ struct CodableURLResponse: Codable {
     var mimeType: String?
     var textEncodingName: String?
     var url: URL?
+    var dataRanges: [NSRange] = []
 
     var urlResponse: URLResponse {
         URLResponse(

@@ -12,31 +12,25 @@ import Foundation
 
 extension ResourceLoader {
 
-    /// Handles content information request. Returns true only if fully handled (with response available).
-    /// Queues if no response yet (will retry after didReceive response).
     internal func handleContentInformationRequest(
         _ loadingRequest: AVAssetResourceLoadingRequest,
         contentInformationRequest: AVAssetResourceLoadingContentInformationRequest
     ) -> Bool {
-        print("handling ContentInformationRequest")
-
         if let response = cacheManager.getCachedResponse() {
             self.handleResponseForContentInformationRequest(
                 loadingRequest: loadingRequest,
                 contentInformationRequest: contentInformationRequest,
-                urlResponse: response
+                urlResponse: response.urlResponse
             )
             loadingRequest.finishLoading()
             return true
         }
-        print("No cached response yet for ContentInformationRequest - queuing for retry")
 
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "HEAD"
 
         let task = urlSession.dataTask(with: urlRequest) { _, urlResponse, error in
             guard let urlResponse, error == nil else {
-                print(error)
                 loadingRequest.finishLoading(with: error)
                 return
             }
@@ -56,8 +50,6 @@ extension ResourceLoader {
         contentInformationRequest: AVAssetResourceLoadingContentInformationRequest,
         urlResponse: URLResponse
     ) {
-        print("ContentInformationRequest with response ok")
-
         contentInformationRequest.isByteRangeAccessSupported = true
         contentInformationRequest.contentType = urlResponse.mimeType
         contentInformationRequest.contentLength = urlResponse.expectedContentLength

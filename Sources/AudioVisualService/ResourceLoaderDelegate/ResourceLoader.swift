@@ -25,7 +25,6 @@ actor ResourceLoader: NSObject, Sendable {
     }
 
     deinit {
-        print("deinit CachingPlayerItemDelegate")
         invalidate()
     }
 

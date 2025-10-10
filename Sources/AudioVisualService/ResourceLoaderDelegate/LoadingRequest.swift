@@ -26,9 +26,6 @@ extension ResourceLoader {
     func processRequests() {
         loadingRequests.removeAll { request in
             let isHandled = handleLoadingRequest(request)
-            if isHandled {
-                //                request.finishLoading()
-            }
             return isHandled
         }
     }

@@ -15,14 +15,15 @@ public final class CacheManager: Sendable {
         directoryHint: .isDirectory
     )
 
-    static let maxCacheRetentionDuration: Double = 60 * 60 * 24 * 7 // 7 days
+    var cachedCodableURLResponse: CodableURLResponse? = nil
+    static let maxCacheRetentionDuration: Double = 60 * 60 * 24 * 7  // 7 days
     let fileManager = FileManager.default
     let url: URL
 
     init(for url: URL) {
         self.url = url
 
-        if !fileManager.fileExists(atPath: Self.cacheDirectory.path) {
+        if !fileManager.fileExists(atPath: CacheManager.cacheDirectory.path) {
             try? fileManager.createDirectory(
                 at: CacheManager.cacheDirectory,
                 withIntermediateDirectories: true,
@@ -52,7 +53,7 @@ public final class CacheManager: Sendable {
     }
 
     var codableURLResponseCachePath: String {
-        cacheFileURL.appendingPathExtension(for: .json).path(percentEncoded: true)
+        cacheFileURL.deletingPathExtension().appendingPathExtension(for: .json).path(percentEncoded: true)
     }
 
     /// Invalidates the cache for this URL by removing the cached file and response metadata.

@@ -17,13 +17,9 @@ extension ResourceLoader: AVAssetResourceLoaderDelegate {
         _ resourceLoader: AVAssetResourceLoader,
         shouldWaitForLoadingOfRequestedResource loadingRequest: AVAssetResourceLoadingRequest
     ) -> Bool {
-        print("shouldWaitForLoadingOfRequestedResource: AVAssetResourceLoadingRequest")
-        // Hop into the actor to mutate actor-isolated state.
-
         Task {
             await self.addRequest(loadingRequest)
         }
-
         // Always return true to indicate we will handle this request asynchronously.
         return true
     }
@@ -32,8 +28,6 @@ extension ResourceLoader: AVAssetResourceLoaderDelegate {
         _ resourceLoader: AVAssetResourceLoader,
         didCancel loadingRequest: AVAssetResourceLoadingRequest
     ) {
-        print("didCancel loadingRequest: AVAssetResourceLoadingRequest")
-        // If you later want to remove, hop into the actor:
         Task {
             await self.removeRequest(loadingRequest)
         }
