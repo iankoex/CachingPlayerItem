@@ -9,19 +9,51 @@ import AVFoundation
 import Foundation
 
 /// An actor that manages preloading of video data to improve playback experience.
+///
+/// The `Preloader` provides functionality to proactively download video content
+/// before it's needed for playback. This reduces buffering and improves the
+/// user experience, especially for slower network connections.
+///
+/// ## Usage
+///
+/// ```swift
+/// let preloader = Preloader(preloadSize: 5 * 1024 * 1024) // 5MB
+///
+/// // Preload a single video
+/// preloader.preload(videoURL)
+///
+/// // Preload multiple videos
+/// preloader.preload([videoURL1, videoURL2, videoURL3])
+///
+/// // Cancel preloading if needed
+/// preloader.cancelPreloading(for: videoURL)
+/// ```
+///
+/// - Note: This actor is thread-safe and manages concurrent preloading operations.
 public actor Preloader: Sendable {
-    /// The maximum size in bytes to preload for each video.
+    /// The maximum number of bytes to preload for each video.
+    ///
+    /// This limit prevents excessive data usage by capping the amount of
+    /// content downloaded during preloading. A typical value is 5MB (5 * 1024 * 1024).
     let preloadSize: Int
     var isPreloadingStore: [URL: Bool] = [:]
     private var preloadingTasks: [URL: Task<Void, Error>] = [:]
 
-    /// Initializes a Preloader with the specified preload size.
-    /// - Parameter preloadSize: The number of bytes to preload (default 5MB).
+    /// Creates a new preloader with the specified preload size limit.
+    ///
+    /// - Parameter preloadSize: The maximum number of bytes to preload for each video.
+    ///                        Defaults to 5MB. Set to a higher value for better
+    ///                        buffering but increased data usage.
     public init(preloadSize: Int = 5 * 1024 * 1024) {
         self.preloadSize = preloadSize
     }
 
-    /// Preloads the first `preloadSize` bytes for multiple URLs.
+    /// Preloads the first `preloadSize` bytes for multiple video URLs.
+    ///
+    /// This method efficiently preloads multiple videos concurrently.
+    /// Videos that are already fully cached or have sufficient preload data
+    /// will be skipped automatically.
+    ///
     /// - Parameter urls: An array of video URLs to preload.
     public func preload(_ urls: [URL]) {
         for url in urls {
@@ -30,7 +62,14 @@ public actor Preloader: Sendable {
     }
 
     /// Preloads the first `preloadSize` bytes of the video at the given URL.
-    /// If already preloading, cancels the previous preload and starts a new one.
+    ///
+    /// This method starts an asynchronous download of the video's initial segment.
+    /// If preloading is already in progress for this URL, the previous operation
+    /// is cancelled and a new one begins.
+    ///
+    /// The method automatically skips videos that are already fully cached or
+    /// have sufficient preload data.
+    ///
     /// - Parameter url: The URL of the video to preload.
     public func preload(_ url: URL) {
         // Cancel any existing preloading for this URL
@@ -62,8 +101,12 @@ public actor Preloader: Sendable {
         }
     }
 
-    /// Cancels any ongoing preloading for the given URL.
-    /// - Parameter url: The URL for which to cancel preloading.
+    /// Cancels any ongoing preloading operation for the given URL.
+    ///
+    /// This method immediately stops the download operation for the specified URL.
+    /// The partially downloaded data remains cached and can be used for future playback.
+    ///
+    /// - Parameter url: The URL for which to cancel the preloading operation.
     public func cancelPreloading(for url: URL) {
         preloadingTasks[url]?.cancel()
         preloadingTasks[url] = nil

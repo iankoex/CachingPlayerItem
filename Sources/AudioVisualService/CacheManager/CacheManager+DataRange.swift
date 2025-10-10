@@ -8,6 +8,13 @@
 import Foundation
 
 extension CacheManager {
+    /// Updates the cached data ranges to include a newly downloaded range.
+    ///
+    /// This method adds the specified range to the list of cached data ranges and
+    /// merges any overlapping ranges to maintain a clean, non-overlapping representation.
+    /// The updated ranges are persisted to disk as part of the response metadata.
+    ///
+    /// - Parameter range: The byte range that has been successfully cached.
     func updateCachedDataRanges(with range: NSRange) {
         if cachedCodableURLResponse == nil {
             cachedCodableURLResponse = getCachedResponse()
@@ -22,6 +29,14 @@ extension CacheManager {
         updateCachedURLResponse(with: cachedCodableURLResponse)
     }
 
+    /// Merges overlapping and adjacent ranges in the provided array.
+    ///
+    /// This method takes an array of ranges and combines any that overlap or are
+    /// contiguous (touching at the boundaries). The result is a sorted array of
+    /// non-overlapping ranges that represent the same total coverage.
+    ///
+    /// - Parameter cachedDataRanges: An array of ranges to merge.
+    /// - Returns: A new array of merged, non-overlapping ranges.
     private func mergeOverlappingRanges(in cachedDataRanges: [NSRange]) -> [NSRange] {
         guard cachedDataRanges.count > 1 else {
             return cachedDataRanges
@@ -57,13 +72,21 @@ extension CacheManager {
         return mergedRanges
     }
 
+    /// Determines the available contiguous range starting from the requested location.
+    ///
+    /// This method checks if data is available starting at the requested location and
+    /// returns the contiguous range that can be served from cache. If the requested
+    /// location is not cached, it returns `nil`.
+    ///
+    /// - Parameter requested: The range for which to check availability.
+    /// - Returns: The available contiguous range starting at the requested location, or `nil` if not available.
     func getAvailableRange(for requested: NSRange) -> NSRange? {
         guard requested.length > 0 else { return nil }
 
         if cachedCodableURLResponse == nil {
             cachedCodableURLResponse = getCachedResponse()
         }
-        guard var cachedCodableURLResponse else {
+        guard let cachedCodableURLResponse else {
             return nil
         }
 
