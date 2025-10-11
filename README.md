@@ -44,6 +44,26 @@ let player = AVPlayer(playerItem: playerItem)
 player.play()
 ```
 
+### Using the Service Delegate
+
+```swift
+import AudioVisualService
+
+class MyViewController: UIViewController, AudioVisualServiceDelegate {
+    func didCacheData(url: URL, totalBytesCached: Int) {
+        print("Cached \(totalBytesCached) bytes for \(url)")
+        // Update UI with caching progress
+    }
+
+    func playVideo() {
+        let videoURL = URL(string: "https://example.com/video.mp4")!
+        let playerItem = CachingPlayerItem(url: videoURL, serviceDelegate: self)
+        let player = AVPlayer(playerItem: playerItem)
+        player.play()
+    }
+}
+```
+
 ### Advanced Asset Usage
 
 ```swift
@@ -131,7 +151,11 @@ A drop-in replacement for `AVPlayerItem` with automatic caching capabilities.
 
 ```swift
 public class CachingPlayerItem: AVPlayerItem, Sendable {
-    public init(url: URL, automaticallyLoadedAssetKeys: [String]? = nil)
+    public init(
+        url: URL,
+        automaticallyLoadedAssetKeys: [String]? = nil,
+        serviceDelegate: AudioVisualServiceDelegate? = nil
+    )
 }
 ```
 
@@ -141,7 +165,11 @@ An `AVURLAsset` subclass that provides caching through custom resource loading.
 
 ```swift
 public final class CachingAVURLAsset: AVURLAsset, @unchecked Sendable {
-    override public init(url: URL, options: [String: Any]? = nil)
+    public init(
+        url: URL,
+        options: [String: Any]? = nil,
+        serviceDelegate: AudioVisualServiceDelegate? = nil
+    )
 }
 ```
 
@@ -178,6 +206,16 @@ public final class CacheManager: Sendable {
     public static func totalCacheSize() -> Int
     public static func deleteCachedData() throws
     public static func enforceCacheLimit()
+}
+```
+
+### AudioVisualServiceDelegate
+
+A protocol for receiving callbacks about caching and loading events.
+
+```swift
+public protocol AudioVisualServiceDelegate: Sendable {
+    func didCacheData(url: URL, totalBytesCached: Int)
 }
 ```
 

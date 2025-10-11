@@ -30,6 +30,7 @@ extension CacheManager {
             let totalBytesCached = updateCachedDataRanges(with: range)
             fileHandle.closeFile()
             serviceDelegate?.didCacheData(url: url, totalBytesCached: totalBytesCached)
+            touchFile()
         } catch {
             print(error)
         }
@@ -59,6 +60,7 @@ extension CacheManager {
         do {
             try fileHandle.seek(toOffset: UInt64(availableRange.location))
             let data = try fileHandle.read(upToCount: adjustedLength)
+            touchFile()
             return data
         } catch {
             print(error)

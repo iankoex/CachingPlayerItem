@@ -87,18 +87,6 @@ public final class CacheManager: Sendable {
         print(cacheFileURL)
     }
 
-    /// A Boolean value indicating whether the video is fully cached and playable.
-    ///
-    /// This property checks if the cached file size matches the expected content length
-    /// and validates that all byte ranges are contiguous and the content is playable.
-    /// Returns `false` if no response metadata is available or if the cache is incomplete.
-    var isFullyCached: Bool {
-        guard let response = getCachedResponse() else {
-            return false
-        }
-        return response.expectedContentLength == cacheFileSize
-    }
-
     /// The size of the cached file in bytes.
     ///
     /// This property returns the actual file size on disk, or 0 if the file doesn't exist
