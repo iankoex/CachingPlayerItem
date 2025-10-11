@@ -26,8 +26,10 @@ extension CacheManager {
             let fileHandle = try FileHandle(forWritingTo: fileURL)
             try fileHandle.seek(toOffset: UInt64(offset))
             try fileHandle.write(contentsOf: data)
-            updateCachedDataRanges(with: NSRange(location: offset, length: data.count))
+            let range = NSRange(location: offset, length: data.count)
+            let totalBytesCached = updateCachedDataRanges(with: range)
             fileHandle.closeFile()
+            serviceDelegate?.didCacheData(url: url, totalBytesCached: totalBytesCached)
         } catch {
             print(error)
         }

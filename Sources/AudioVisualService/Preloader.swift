@@ -1,6 +1,6 @@
 //
 //  Preloader.swift
-//  CachingPlayerItem
+//  AudioVisualService
 //
 //  Created by ian on 10/31/24.
 //
@@ -10,14 +10,21 @@ import Foundation
 
 /// An actor that manages preloading of video data to improve playback experience.
 ///
-/// The `Preloader` provides functionality to proactively download video content
-/// before it's needed for playback. This reduces buffering and improves the
-/// user experience, especially for slower network connections.
+/// The `Preloader` proactively downloads video content to ensure smooth playback
+/// and reduce buffering. It works by creating a `CachingAVURLAsset` and loading
+/// the `isPlayable` property, which triggers AVFoundation's resource loading
+/// mechanism. During this process, video data is cached locally.
+///
+/// The preloader stops downloading when either:
+/// - The video is confirmed playable (ensuring minimal data for smooth playback)
+/// - The maximum preload size limit is reached (preventing excessive data usage)
+///
+/// This approach ensures videos can start playing quickly while respecting data limits.
 ///
 /// ## Usage
 ///
 /// ```swift
-/// let preloader = Preloader(preloadSize: 5 * 1024 * 1024) // 5MB
+/// let preloader = Preloader(preloadSize: 5 * 1024 * 1024) // 5MB limit
 ///
 /// // Preload a single video
 /// preloader.preload(videoURL)
@@ -29,14 +36,17 @@ import Foundation
 /// preloader.cancelPreloading(for: videoURL)
 /// ```
 ///
-/// - Note: This actor is thread-safe and manages concurrent preloading operations.
-public actor Preloader: Sendable {
+/// - Note: It conforms to `AudioVisualServiceDelegate` to monitor caching progress.
+public actor Preloader: AudioVisualServiceDelegate {
     /// The maximum number of bytes to preload for each video.
     ///
     /// This limit prevents excessive data usage by capping the amount of
-    /// content downloaded during preloading. A typical value is 5MB (5 * 1024 * 1024).
+    /// content downloaded during preloading. When this limit is reached,
+    /// preloading stops even if the video isn't fully playable yet.
+    /// A typical value is 5MB (5 * 1024 * 1024).
     let preloadSize: Int
-    var isPreloadingStore: [URL: Bool] = [:]
+
+    /// A dictionary tracking active preloading tasks for each URL.
     private var preloadingTasks: [URL: Task<Void, Error>] = [:]
 
     /// Creates a new preloader with the specified preload size limit.
@@ -48,11 +58,11 @@ public actor Preloader: Sendable {
         self.preloadSize = preloadSize
     }
 
-    /// Preloads the first `preloadSize` bytes for multiple video URLs.
+    /// Preloads multiple video URLs concurrently.
     ///
-    /// This method efficiently preloads multiple videos concurrently.
-    /// Videos that are already fully cached or have sufficient preload data
-    /// will be skipped automatically.
+    /// This method efficiently starts preloading for multiple videos at once.
+    /// Each video will be processed independently, with preloading stopping
+    /// when the video becomes playable or the size limit is reached.
     ///
     /// - Parameter urls: An array of video URLs to preload.
     public func preload(_ urls: [URL]) {
@@ -61,14 +71,15 @@ public actor Preloader: Sendable {
         }
     }
 
-    /// Preloads the first `preloadSize` bytes of the video at the given URL.
+    /// Preloads a single video URL.
     ///
-    /// This method starts an asynchronous download of the video's initial segment.
-    /// If preloading is already in progress for this URL, the previous operation
-    /// is cancelled and a new one begins.
+    /// This method starts the preloading process for the specified video.
+    /// If preloading is already in progress for this URL, the previous
+    /// operation is cancelled and a new one begins.
     ///
-    /// The method automatically skips videos that are already fully cached or
-    /// have sufficient preload data.
+    /// Preloading will stop when either:
+    /// - The video is determined to be playable
+    /// - The maximum preload size is reached
     ///
     /// - Parameter url: The URL of the video to preload.
     public func preload(_ url: URL) {
@@ -76,65 +87,54 @@ public actor Preloader: Sendable {
         preloadingTasks[url]?.cancel()
         preloadingTasks[url] = nil
 
-        let cacheManager = CacheManager(for: url)
-
-        // If entire video is cached, skip preload
-        if cacheManager.isFullyCached {
-            return
-        }
-
-        let cachedBytes = cacheManager.cacheFileSize
-        if cachedBytes > preloadSize {
-            return
-        }
-
-        // Start downloading up to preloadSize
-        isPreloadingStore[url] = true
         preloadingTasks[url] = Task {
-            defer { self.preloadingTasks[url] = nil }
-            await startPreloading(
-                url: url,
-                from: cachedBytes,
-                upTo: preloadSize,
-                using: cacheManager
-            )
+            await startPreloading(url: url)
         }
     }
 
     /// Cancels any ongoing preloading operation for the given URL.
     ///
-    /// This method immediately stops the download operation for the specified URL.
+    /// This method immediately stops the preloading operation for the specified URL.
     /// The partially downloaded data remains cached and can be used for future playback.
     ///
     /// - Parameter url: The URL for which to cancel the preloading operation.
     public func cancelPreloading(for url: URL) {
         preloadingTasks[url]?.cancel()
         preloadingTasks[url] = nil
-        isPreloadingStore[url] = false
     }
 
-    private func startPreloading(
-        url: URL,
-        from offset: Int,
-        upTo bytes: Int,
-        using cacheManager: CacheManager
-    ) async {
+    /// Starts the preloading process for a video URL.
+    ///
+    /// This method creates a `CachingAVURLAsset` and loads the `isPlayable` property,
+    /// which triggers AVFoundation's resource loading. During this process, video
+    /// data is cached. The method monitors for cancellation and stops when the
+    /// video becomes playable.
+    ///
+    /// - Parameter url: The URL of the video to preload.
+    private func startPreloading(url: URL) async {
         guard !Task.isCancelled else { return }
-        var request = URLRequest(url: url)
-        request.setValue("bytes=\(offset)-\(bytes - 1)", forHTTPHeaderField: "Range")
-        if let (data, response) = try? await createURLSession().data(for: request) {
-            guard !Task.isCancelled else { return }
-            cacheManager.cacheURLResponse(response)
-            cacheManager.appendData(data, offset: offset)
+
+        let asset = CachingAVURLAsset(url: url, serviceDelegate: self)
+
+        let isPlayable = try? await asset.load(.isPlayable)
+        if let isPlayable, isPlayable {
+            await asset.customResourceLoader.invalidate()
         }
-        self.isPreloadingStore[url] = false
     }
 
-    private func createURLSession() -> URLSession {
-        let config = URLSessionConfiguration.default
-        config.requestCachePolicy = .returnCacheDataElseLoad
-        let operationQueue = OperationQueue()
-        operationQueue.maxConcurrentOperationCount = 1
-        return URLSession(configuration: config, delegate: nil, delegateQueue: operationQueue)
+    /// Called when data has been cached for a video asset.
+    ///
+    /// This delegate method monitors the total bytes cached and cancels preloading
+    /// when the maximum preload size is reached, ensuring data usage limits are respected.
+    ///
+    /// - Parameters:
+    ///   - url: The URL of the video asset.
+    ///   - totalBytesCached: The total number of bytes cached so far.
+    nonisolated public func didCacheData(url: URL, totalBytesCached: Int) {
+        if totalBytesCached >= preloadSize {
+            Task {
+                await cancelPreloading(for: url)
+            }
+        }
     }
 }

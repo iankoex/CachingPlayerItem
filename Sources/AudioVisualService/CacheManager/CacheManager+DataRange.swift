@@ -15,18 +15,19 @@ extension CacheManager {
     /// The updated ranges are persisted to disk as part of the response metadata.
     ///
     /// - Parameter range: The byte range that has been successfully cached.
-    func updateCachedDataRanges(with range: NSRange) {
+    func updateCachedDataRanges(with range: NSRange) -> Int {
         if cachedCodableURLResponse == nil {
             cachedCodableURLResponse = getCachedResponse()
         }
         guard var cachedCodableURLResponse else {
-            return
+            return 0
         }
         cachedCodableURLResponse.dataRanges.append(range)
         cachedCodableURLResponse.dataRanges.sort { $0.location < $1.location }
         cachedCodableURLResponse.dataRanges = mergeOverlappingRanges(in: cachedCodableURLResponse.dataRanges)
         self.cachedCodableURLResponse = cachedCodableURLResponse
         updateCachedURLResponse(with: cachedCodableURLResponse)
+        return totalDataCached(from: cachedCodableURLResponse.dataRanges)
     }
 
     /// Merges overlapping and adjacent ranges in the provided array.
@@ -70,6 +71,16 @@ extension CacheManager {
 
         mergedRanges.append(currentMergedRange)
         return mergedRanges
+    }
+
+    func totalDataCached(from mergedRanges: [NSRange]) -> Int {
+        var totalLength: Int = 0
+
+        for range in mergedRanges {
+            totalLength += range.length
+        }
+
+        return totalLength
     }
 
     /// Determines the available contiguous range starting from the requested location.

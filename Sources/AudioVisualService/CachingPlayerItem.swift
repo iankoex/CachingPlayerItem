@@ -36,9 +36,13 @@ public final class CachingPlayerItem: AVPlayerItem, Sendable {
     /// - Parameters:
     ///   - url: The URL of the video content to play and cache.
     ///   - automaticallyLoadedAssetKeys: Optional array of asset keys to load automatically.
-    public init(url: URL, automaticallyLoadedAssetKeys: [String]? = nil) {
-        let asset = CachingAVURLAsset(url: url)
-
+    ///   - serviceDelegate: An optional delegate to receive caching and loading events.
+    public init(
+        url: URL,
+        automaticallyLoadedAssetKeys: [String]? = nil,
+        serviceDelegate: AudioVisualServiceDelegate? = nil
+    ) {
+        let asset = CachingAVURLAsset(url: url, serviceDelegate: serviceDelegate)
         super.init(asset: asset, automaticallyLoadedAssetKeys: automaticallyLoadedAssetKeys)
     }
 }

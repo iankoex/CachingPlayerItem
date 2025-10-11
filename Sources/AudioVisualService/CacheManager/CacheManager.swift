@@ -14,6 +14,7 @@ import Foundation
 /// - Track download progress and cache completeness
 /// - Manage cache lifecycle and cleanup
 /// - Validate cached content integrity
+/// - Notify delegates about caching events and progress
 ///
 /// ## Usage
 ///
@@ -39,6 +40,12 @@ public final class CacheManager: Sendable {
         directoryHint: .isDirectory
     )
 
+    /// The delegate that receives notifications about caching events and progress.
+    ///
+    /// The delegate is notified when data is cached, loading progress updates,
+    /// and other caching-related events.
+    let serviceDelegate: AudioVisualServiceDelegate?
+
     /// The cached response metadata for the associated URL.
     ///
     /// This property holds the decoded `CodableURLResponse` containing information
@@ -63,10 +70,12 @@ public final class CacheManager: Sendable {
     /// ensures the cache directory exists. The cache directory is created if it
     /// doesn't already exist.
     ///
-    /// - Parameter url: The URL of the video asset to cache.
-    init(for url: URL) {
+    /// - Parameters:
+    ///   - url: The URL of the video asset to cache.
+    ///   - serviceDelegate: An optional delegate to receive caching and loading events.
+    init(for url: URL, serviceDelegate: AudioVisualServiceDelegate? = nil) {
         self.url = url
-
+        self.serviceDelegate = serviceDelegate
         if !fileManager.fileExists(atPath: CacheManager.cacheDirectory.path) {
             try? fileManager.createDirectory(
                 at: CacheManager.cacheDirectory,

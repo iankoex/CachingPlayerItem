@@ -21,6 +21,12 @@ actor ResourceLoader: NSObject, Sendable {
     /// The cache manager responsible for storing and retrieving cached data.
     nonisolated let cacheManager: CacheManager
 
+    /// The delegate that receives notifications about loading events and progress.
+    ///
+    /// The delegate is notified when loading starts, finishes, fails, and when
+    /// progress updates occur.
+    let serviceDelegate: AudioVisualServiceDelegate?
+
     /// The URL session used for downloading video data.
     let urlSession: URLSession
 
@@ -35,10 +41,13 @@ actor ResourceLoader: NSObject, Sendable {
 
     /// Creates a new resource loader for the specified video URL.
     ///
-    /// - Parameter url: The URL of the video asset to load and cache.
-    init(url: URL) {
+    /// - Parameters:
+    ///   - url: The URL of the video asset to load and cache.
+    ///   - serviceDelegate: An optional delegate to receive loading and caching events.
+    init(url: URL, serviceDelegate: AudioVisualServiceDelegate? = nil) {
         self.url = url
-        self.cacheManager = CacheManager(for: url)
+        self.serviceDelegate = serviceDelegate
+        self.cacheManager = CacheManager(for: url, serviceDelegate: serviceDelegate)
 
         let config = URLSessionConfiguration.default
         config.requestCachePolicy = .returnCacheDataElseLoad
@@ -54,14 +63,12 @@ actor ResourceLoader: NSObject, Sendable {
     /// This method should be called when the associated asset is no longer needed.
     /// It ensures that all loading requests are properly completed and any ongoing
     /// network operations are cancelled. The URL session is also invalidated.
-    public nonisolated func invalidate() {
-        Task {
-            let pendingRequests = await pendingRequests
-            await self.loadingRequests.forEach {
-                $0.finishLoading()
-                pendingRequests[$0]?.cancel()
-            }
-            urlSession.finishTasksAndInvalidate()
+    public func invalidate() {
+        let pendingRequests = pendingRequests
+        self.loadingRequests.forEach {
+            $0.finishLoading()
+            pendingRequests[$0]?.cancel()
         }
+        urlSession.finishTasksAndInvalidate()
     }
 }

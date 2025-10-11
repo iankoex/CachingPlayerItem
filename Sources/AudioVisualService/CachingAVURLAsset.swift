@@ -38,9 +38,14 @@ public final class CachingAVURLAsset: AVURLAsset, @unchecked Sendable {
     /// - Parameters:
     ///   - url: The URL of the video content to load and cache.
     ///   - options: Optional asset loading options passed to the superclass.
-    override public init(url: URL, options: [String: Any]? = nil) {
+    ///   - serviceDelegate: An optional delegate to receive caching and loading events.
+    public init(
+        url: URL,
+        options: [String: Any]? = nil,
+        serviceDelegate: AudioVisualServiceDelegate? = nil
+    ) {
         let urlWithCustomScheme = Self.replaceScheme(of: url, with: "customcache")
-        self.customResourceLoader = ResourceLoader(url: url)
+        self.customResourceLoader = ResourceLoader(url: url, serviceDelegate: serviceDelegate)
         super.init(url: urlWithCustomScheme, options: options)
         self.resourceLoader.setDelegate(self.customResourceLoader, queue: .global(qos: .userInteractive))
     }
@@ -58,5 +63,11 @@ public final class CachingAVURLAsset: AVURLAsset, @unchecked Sendable {
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         components?.scheme = scheme
         return components?.url ?? url
+    }
+
+    /// Explicitly tear down resource loading to avoid dangling references.
+    deinit {
+        // Break delegate retain path first.
+        resourceLoader.setDelegate(nil, queue: nil)
     }
 }
