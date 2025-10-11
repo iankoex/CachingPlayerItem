@@ -100,15 +100,6 @@ await preloader.cancelPreloading(for: videoURL)
 ```swift
 import AudioVisualService
 
-// Set custom cache directory (call this early in your app)
-CacheManager.setCacheDirectory(URL(fileURLWithPath: "/custom/cache/path"))
-
-// Check cache status for a video
-let cacheManager = CacheManager(for: videoURL)
-if cacheManager.isFullyCached {
-    print("Video is available offline")
-}
-
 // Get total cache size
 let totalSize = CacheManager.totalCacheSize()
 print("Total cache size: \(totalSize) bytes")
@@ -121,20 +112,6 @@ try cacheManager.invalidateCache()
 
 // Clear all cached data
 try CacheManager.deleteCachedData()
-```
-
-### Cache Validation
-
-```swift
-import AudioVisualService
-
-let cacheManager = CacheManager(for: videoURL)
-
-// Check if video is fully cached and playable
-if cacheManager.isFullyCached {
-    // Video is completely downloaded and validated
-    print("Video ready for offline playback")
-}
 ```
 
 ## Requirements
@@ -195,14 +172,10 @@ Manages local caching of video data with comprehensive lifecycle management.
 public final class CacheManager: Sendable {
     public init(for url: URL)
 
-    // Cache status
-    public var isFullyCached: Bool { get }
-
     // Cache operations
     public func invalidateCache() throws
 
     // Static methods
-    public static func setCacheDirectory(_ directory: URL)
     public static func totalCacheSize() -> Int
     public static func deleteCachedData() throws
     public static func enforceCacheLimit()
