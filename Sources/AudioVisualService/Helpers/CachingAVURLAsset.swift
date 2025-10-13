@@ -26,6 +26,7 @@ import Foundation
 /// ```
 ///
 /// - Note: This class is thread-safe and can be used across actor boundaries.
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 public final class CachingAVURLAsset: AVURLAsset, @unchecked Sendable {
     let customResourceLoader: ResourceLoader
 

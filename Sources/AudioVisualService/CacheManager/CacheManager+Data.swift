@@ -7,6 +7,7 @@
 
 import Foundation
 
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 extension CacheManager {
     /// Appends data to the cache file at the specified offset.
     ///

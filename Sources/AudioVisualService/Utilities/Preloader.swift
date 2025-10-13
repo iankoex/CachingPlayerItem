@@ -37,6 +37,7 @@ import Foundation
 /// ```
 ///
 /// - Note: It conforms to `AudioVisualServiceDelegate` to monitor caching progress.
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 public actor Preloader: AudioVisualServiceDelegate {
     /// The maximum number of bytes to preload for each video.
     ///

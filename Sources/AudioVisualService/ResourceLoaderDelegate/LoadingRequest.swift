@@ -10,6 +10,7 @@ import Foundation
 
 // MARK: AVAssetResourceLoaderDelegate Methods
 
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 extension ResourceLoader {
     /// Adds a new loading request to the queue and begins processing it.
     ///

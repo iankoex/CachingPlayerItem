@@ -10,6 +10,7 @@ import Foundation
 
 // MARK: AVAssetResourceLoaderDelegate DataRequestRequestMethods
 
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 extension ResourceLoader {
 
     /// Handles a data request by serving cached data or downloading new data.

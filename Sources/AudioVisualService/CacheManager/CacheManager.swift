@@ -29,6 +29,7 @@ import Foundation
 /// // Invalidate cache when needed
 /// try cacheManager.invalidateCache()
 /// ```
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 public final class CacheManager: Sendable {
 
     /// The default directory where cached video files are stored.

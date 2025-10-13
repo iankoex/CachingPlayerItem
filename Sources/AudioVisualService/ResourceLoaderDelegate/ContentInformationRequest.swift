@@ -10,6 +10,7 @@ import Foundation
 
 // MARK: AVAssetResourceLoaderDelegate ContentInformationRequestMethods
 
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 extension ResourceLoader {
 
     /// Handles a content information request by providing cached or fetched response data.

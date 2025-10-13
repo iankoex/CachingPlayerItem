@@ -4,23 +4,17 @@
 import PackageDescription
 
 let featureFlags: [SwiftSetting] = [
-    .enableUpcomingFeature("StrictConcurrency=complete"),
+    .enableUpcomingFeature("StrictConcurrency=complete")
 ]
 
 let package = Package(
     name: "AudioVisualService",
-    platforms: [
-        .iOS(.v16),
-        .macOS(.v13),
-        .tvOS(.v14),
-        .watchOS(.v7)
-    ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "AudioVisualService",
             targets: ["AudioVisualService"]
-        ),
+        )
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.

@@ -8,6 +8,7 @@
 import CryptoKit
 import Foundation
 
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 extension URL {
     /// A MD5 hash of the URL's absolute string, suitable for use as a filename.
     ///

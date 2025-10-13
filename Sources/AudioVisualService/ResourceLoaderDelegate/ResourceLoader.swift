@@ -17,6 +17,7 @@ import Foundation
 ///
 /// This actor maintains thread safety while handling concurrent loading requests
 /// and ensures proper cleanup of network operations.
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 actor ResourceLoader: NSObject, Sendable {
     /// The cache manager responsible for storing and retrieving cached data.
     nonisolated let cacheManager: CacheManager

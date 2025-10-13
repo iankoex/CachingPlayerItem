@@ -7,6 +7,7 @@
 
 import Foundation
 
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 extension CacheManager {
 
     /// Calculates the total size of all cached files in the cache directory.

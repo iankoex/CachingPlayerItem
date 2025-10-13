@@ -10,6 +10,7 @@ import Foundation
 
 // MARK: AVAssetResourceLoaderDelegate
 
+@available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 extension ResourceLoader: AVAssetResourceLoaderDelegate {
 
     /// Intercepts resource loading requests to serve cached data or initiate downloads.
