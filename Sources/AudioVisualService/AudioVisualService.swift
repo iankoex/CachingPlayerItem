@@ -15,7 +15,6 @@ public final class AudioVisualService: Sendable {
     public var player: AVPlayer?
     public let url: String
     public var time: CMTime = .zero
-    private let identifier: String
     private var cachingPlayerItem: CachingPlayerItem?
     private var lastPlayingState: Bool? = nil
     private var timeObserver: Any?
@@ -28,9 +27,8 @@ public final class AudioVisualService: Sendable {
         }
     }
 
-    public init(_ url: String, identifier: String) {
+    public init(_ url: String) {
         self.url = url
-        self.identifier = identifier
     }
 
     deinit {
@@ -112,7 +110,6 @@ public final class AudioVisualService: Sendable {
         let player = AVPlayer(playerItem: playerItem)
         player.currentItem?.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         player.automaticallyWaitsToMinimizeStalling = true
-        player.allowsExternalPlayback = true
         player.play()
         return player
     }

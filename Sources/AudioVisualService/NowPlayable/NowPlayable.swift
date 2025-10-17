@@ -75,6 +75,7 @@ public protocol NowPlayable: AnyObject {
 
 // Extension methods provide useful functionality for `NowPlayable` customizations.
 
+@available(macOS 10.13.2, iOS 12, tvOS 14, watchOS 7, *)
 extension NowPlayable {
     
     // Install handlers for registered commands, and disable commands as necessary.

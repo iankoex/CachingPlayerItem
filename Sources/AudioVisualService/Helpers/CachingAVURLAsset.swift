@@ -1,6 +1,6 @@
 //
 //  CachingAVURLAsset.swift
-//  CachingPlayerItem
+//  AudioVisualService
 //
 //  Created by ian on 07/10/2025.
 //
@@ -29,6 +29,7 @@ import Foundation
 @available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 public final class CachingAVURLAsset: AVURLAsset, @unchecked Sendable {
     let customResourceLoader: ResourceLoader
+    private let resourceLoaderQueue = DispatchQueue(label: "com.AudioVisualService")
 
     /// Creates a new caching AVURLAsset with the specified URL.
     ///
@@ -48,7 +49,7 @@ public final class CachingAVURLAsset: AVURLAsset, @unchecked Sendable {
         let urlWithCustomScheme = Self.replaceScheme(of: url, with: "customcache")
         self.customResourceLoader = ResourceLoader(url: url, serviceDelegate: serviceDelegate)
         super.init(url: urlWithCustomScheme, options: options)
-        self.resourceLoader.setDelegate(self.customResourceLoader, queue: .global(qos: .userInteractive))
+        self.resourceLoader.setDelegate(self.customResourceLoader, queue: resourceLoaderQueue)
     }
 
     /// Replaces the URL scheme of the given URL with a new scheme.

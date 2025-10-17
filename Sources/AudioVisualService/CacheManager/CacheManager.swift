@@ -84,8 +84,6 @@ public final class CacheManager: Sendable {
                 attributes: nil
             )
         }
-
-        print(cacheFileURL)
     }
 
     /// The size of the cached file in bytes.

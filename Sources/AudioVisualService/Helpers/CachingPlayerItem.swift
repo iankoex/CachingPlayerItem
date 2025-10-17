@@ -1,6 +1,6 @@
 //
 //  CachingPlayerItem.swift
-//  CachingPlayerItem
+//  AudioVisualService
 //
 //  Created by ian on 10/31/24.
 //
@@ -40,7 +40,7 @@ public final class CachingPlayerItem: AVPlayerItem, Sendable {
     ///   - serviceDelegate: An optional delegate to receive caching and loading events.
     public init(
         url: URL,
-        automaticallyLoadedAssetKeys: [String]? = nil,
+        automaticallyLoadedAssetKeys: [String]? = ["duration", "isPlayable"],
         serviceDelegate: AudioVisualServiceDelegate? = nil
     ) {
         let asset = CachingAVURLAsset(url: url, serviceDelegate: serviceDelegate)
