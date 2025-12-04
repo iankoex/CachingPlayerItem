@@ -29,7 +29,7 @@ import Foundation
 @available(macOS 13, iOS 16, tvOS 14, watchOS 7, *)
 public final class CachingAVURLAsset: AVURLAsset, @unchecked Sendable {
     let customResourceLoader: ResourceLoader
-    private let resourceLoaderQueue = DispatchQueue(label: "com.AudioVisualService")
+    private let resourceLoaderQueue = DispatchQueue(label: "com.AudioVisualService.resourceLoaderQueue")
 
     /// Creates a new caching AVURLAsset with the specified URL.
     ///
