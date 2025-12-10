@@ -1,4 +1,7 @@
 # AudioVisualService
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fiankoex%2FAudioVisualService%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/iankoex/AudioVisualService)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fiankoex%2FAudioVisualService%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/iankoex/AudioVisualService)
+
 
 A Swift package that provides intelligent caching and preloading capabilities for AVFoundation-based media playback. It enables offline viewing, faster subsequent playback, and improved user experience for streaming media content.
 
